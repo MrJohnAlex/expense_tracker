@@ -6,7 +6,7 @@ import { getDateMinutesDays } from "../utils/date";
 import { getAllExpenses } from "../utils/http";
 import LoadingOverLay from "../components/ui/LoadingOverLay";
 import ErrorOverLay from "../components/ui/ErrorOverLay";
-import { UserContext } from "../context/user-context";
+import { UserContext } from "../context/UserContext";
 
 export default function IncomeScreen() {
   const expensesCtx = useContext(ExpenseContext);

@@ -1,5 +1,5 @@
 import axios from "axios";
-const API_KEY = process.env.API_KEY;
+const API_KEY = process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
 
 export const authenticate = async (mode, email, password) => {
   const url = `https://identitytoolkit.googleapis.com/v1/accounts:${mode}?key=${API_KEY}`;
@@ -12,6 +12,7 @@ export const authenticate = async (mode, email, password) => {
     token: response.data.idToken,
     id: response.data.localId,
     email: response.data.email,
+    refreshToken: response.data.refreshToken
   };
 };
 

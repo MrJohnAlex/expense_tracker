@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import AuthContent from "../components/Auth/AuthContent";
 import { CreateUser } from "../utils/auth";
 import LoadingOverlay from "../components/ui/LoadingOverLay";
-import { UserContext } from "../context/user-context";
+import { UserContext } from "../context/UserContext";
 
 function SignupScreen() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);

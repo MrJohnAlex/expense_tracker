@@ -7,6 +7,8 @@ export const UserContext = createContext({
   isAuthenticated: false,
   authenticate: (token) => {},
   logout: () => {},
+  getUserInfo: ({ id, email, name, phone }) => {},
+  updateUserInfo: ({ name, phone, email }) => {},
 });
 
 export default function UserProvider({ children }) {
@@ -24,14 +26,35 @@ export default function UserProvider({ children }) {
     setUserInfo(null);
   }
 
-  function getUserInfo({ id, email }) {
-    setUserInfo({ id, email });
+  // Called after login — store initial user info from API
+  function getUserInfo({ id, email, name, phone }) {
+    const info = { id, email, name: name ?? "", phone: phone ?? "" };
+    setUserInfo(info);
+    // Persist so it survives app restarts
+    SecureStorage.setItemAsync("userInfo", JSON.stringify(info));
+  }
+
+  // Called from UserProfileScreen — update name / phone / email
+  async function updateUserInfo({ name, phone, email }) {
+    const updated = {
+      ...userInfo,
+      name:  name  ?? userInfo?.name  ?? "",
+      phone: phone ?? userInfo?.phone ?? "",
+      email: email ?? userInfo?.email ?? "",
+    };
+    setUserInfo(updated);
+    await SecureStorage.setItemAsync("userInfo", JSON.stringify(updated));
   }
 
   async function tryAutoLogin() {
     const storedToken = await SecureStorage.getItemAsync("token");
     if (storedToken) {
       setAuthToken(storedToken);
+      // Restore persisted user info
+      const storedUser = await SecureStorage.getItemAsync("userInfo");
+      if (storedUser) {
+        setUserInfo(JSON.parse(storedUser));
+      }
     }
   }
 
@@ -46,6 +69,7 @@ export default function UserProvider({ children }) {
     authenticate,
     logout,
     getUserInfo,
+    updateUserInfo,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

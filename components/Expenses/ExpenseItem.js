@@ -35,18 +35,18 @@ const styles = StyleSheet.create({
   expenseItem: {
     padding: 12,
     marginVertical: 8,
-    backgroundColor: GlobalStyles.colors.primary500,
+    backgroundColor: GlobalStyles.colors.surface,
     flexDirection: "row",
     justifyContent: "space-between",
     borderRadius: 6,
     elevation: 3,
-    shadowColor: GlobalStyles.colors.gray500,
+    shadowColor: GlobalStyles.colors.border,
     shadowOffset: { width: 1, height: 1 },
     shadowRadius: 4,
     shadowOpacity: 0.4,
   },
   textBase: {
-    color: GlobalStyles.colors.primary50,
+    color: GlobalStyles.colors.textPrimary,
   },
   description: {
     fontSize: 26,
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
   amount: {
-    color: GlobalStyles.colors.primary500,
+    color: GlobalStyles.colors.surface,
     fontWeight: "bold",
   },
   pressed: {
