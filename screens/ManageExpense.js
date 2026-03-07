@@ -68,19 +68,19 @@ export default function ManageExpense({ route, navigation }) {
       if (isEditing) {
         // Update
         if (isIncome) {
-          await updateIncome(editExpenseId, expenseObj, userCtx.token);
+          await updateIncome(editExpenseId, expenseObj);
           expenseCtx.updateIncome(editExpenseId, expenseObj);
         } else {
-          await updateExpense(editExpenseId, expenseObj, userCtx.token);
+          await updateExpense(editExpenseId, expenseObj);
           expenseCtx.updateExpense(editExpenseId, expenseObj);
         }
       } else {
         // Add new
         if (isIncome) {
-          const id = await storeIncome(expenseObj, userCtx.token);
+          const id = await storeIncome(expenseObj);
           expenseCtx.addIncome({ ...expenseObj, id });
         } else {
-          const id = await storeExpense(expenseObj, userCtx.token);
+          const id = await storeExpense(expenseObj);
           expenseCtx.addExpense({ ...expenseObj, id });
         }
       }
@@ -152,12 +152,12 @@ export default function ManageExpense({ route, navigation }) {
 
       {/* Form — pass formType to lock the toggle */}
       <ExpenseForm
-        submitButtonLabel={isEditing ? "Update" : "Add"}
-        onCancelHandler={cancelHandler}
-        onConfirmHandler={confirmHandler}
-        defaultValues={editableItem}
-        formType={routeType}
-      />
+  submitButtonLabel={isEditing ? "Update" : "Add"}
+  onCancelHandler={cancelHandler}
+  onConfirmHandler={confirmHandler}
+  defaultValues={editableItem}
+  formType={isEditing ? editableItem?.type : routeType}  // ✅ use actual item type when editing
+/>
 
       {/* Delete button — only when editing */}
       {isEditing && (

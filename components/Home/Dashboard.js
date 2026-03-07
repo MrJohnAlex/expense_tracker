@@ -1,5 +1,6 @@
-import { View, Text, StyleSheet, FlatList } from "react-native";
-import { useContext, useEffect, useState } from "react";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import { useContext, useState, useMemo } from "react";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ExpenseContext } from "../../context/expense-context";
 import Card from "../../components/ui/Card";
@@ -21,6 +22,11 @@ const colors = {
   success: "#00D4AA",
   warning: "#F6A623",
 };
+
+const MONTH_NAMES = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
+];
 
 function sumAmount(arr = []) {
   return arr.reduce((acc, item) => acc + (item.amount ?? 0), 0);
@@ -45,19 +51,62 @@ function EmptyState({ type }) {
   );
 }
 
+// ── Filter items to selected month/year ──────────────────────
+function filterByMonth(arr = [], year, month) {
+  return arr.filter((item) => {
+    const d = item.date instanceof Date ? item.date : new Date(item.date);
+    return d.getFullYear() === year && d.getMonth() === month;
+  });
+}
+
 export default function Dashboard() {
   const expenseCtx = useContext(ExpenseContext);
 
-  const [expenses, setExpenses] = useState([]);
-  const [incomes, setIncomes] = useState([]);
+  // ── Selected month state (defaults to current month) ────────
+  const now = new Date();
+  const [selectedYear,  setSelectedYear]  = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth()); // 0-indexed
 
-  useEffect(() => {
-    setExpenses(expenseCtx.expenses ?? []);
-    setIncomes(expenseCtx.incomes ?? []);
-  }, [expenseCtx.expenses, expenseCtx.incomes]);
+  const isCurrentMonth =
+    selectedYear  === now.getFullYear() &&
+    selectedMonth === now.getMonth();
 
-  const currentMonth = new Date().toLocaleString("en-US", { month: "long" });
-  const currentYear  = new Date().getFullYear();
+  // ── Navigate months ──────────────────────────────────────────
+  function goPrev() {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear((y) => y - 1);
+    } else {
+      setSelectedMonth((m) => m - 1);
+    }
+  }
+
+  function goNext() {
+    // Don't allow going beyond current month
+    if (isCurrentMonth) return;
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear((y) => y + 1);
+    } else {
+      setSelectedMonth((m) => m + 1);
+    }
+  }
+
+  function goToday() {
+    setSelectedYear(now.getFullYear());
+    setSelectedMonth(now.getMonth());
+  }
+
+  // ── Filtered data ────────────────────────────────────────────
+  const expenses = useMemo(
+    () => filterByMonth(expenseCtx.expenses ?? [], selectedYear, selectedMonth),
+    [expenseCtx.expenses, selectedYear, selectedMonth]
+  );
+
+  const incomes = useMemo(
+    () => filterByMonth(expenseCtx.incomes ?? [], selectedYear, selectedMonth),
+    [expenseCtx.incomes, selectedYear, selectedMonth]
+  );
 
   const totalIncome  = sumAmount(incomes);
   const totalExpense = sumAmount(expenses);
@@ -65,24 +114,19 @@ export default function Dashboard() {
   const savingsRate  = totalIncome > 0 ? Math.round((balance / totalIncome) * 100) : 0;
   const savingsPct   = Math.min(Math.max(savingsRate, 0), 100);
 
-  // ── Build a single flat data array for the one FlatList ──
-  // Each item has a `_type` key so renderItem knows what to render
+  // ── Flat list data ───────────────────────────────────────────
   const listData = [
-    // income section header
-    { _type: "section_header", _key: "income_header", color: colors.income, title: "Income", count: incomes.length },
-    // income items or empty
+    { _type: "section_header", _key: "income_header",  color: colors.income,  title: "Income",   count: incomes.length  },
     ...(incomes.length > 0
-      ? incomes.map((i) => ({ ...i, _type: "item", _key: `income_${i.id}` }))
-      : [{ _type: "empty", _key: "income_empty", kind: "income" }]),
-    // expense section header
+      ? incomes.map((i)  => ({ ...i, _type: "item", _key: `income_${i.id}`  }))
+      : [{ _type: "empty", _key: "income_empty",  kind: "income"  }]),
     { _type: "section_header", _key: "expense_header", color: colors.expense, title: "Expenses", count: expenses.length },
-    // expense items or empty
     ...(expenses.length > 0
       ? expenses.map((e) => ({ ...e, _type: "item", _key: `expense_${e.id}` }))
       : [{ _type: "empty", _key: "expense_empty", kind: "expense" }]),
   ];
 
-  // ── Header — everything above the lists ─────────────────
+  // ── Header ───────────────────────────────────────────────────
   function ListHeader() {
     return (
       <View>
@@ -91,12 +135,39 @@ export default function Dashboard() {
           <View>
             <Text style={styles.headerSub}>Overview</Text>
             <Text style={styles.headerTitle}>
-              {currentMonth}{" "}
-              <Text style={styles.headerYear}>{currentYear}</Text>
+              {MONTH_NAMES[selectedMonth]}{" "}
+              <Text style={styles.headerYear}>{selectedYear}</Text>
             </Text>
           </View>
-          <View style={styles.monthBadge}>
-            <Text style={styles.monthBadgeText}>This Month</Text>
+
+          {/* ── Month navigator ── */}
+          <View style={styles.monthNav}>
+            <TouchableOpacity onPress={goPrev} style={styles.navBtn} activeOpacity={0.7}>
+              <Ionicons name="chevron-back" size={18} color={colors.textPrimary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={isCurrentMonth ? undefined : goToday}
+              activeOpacity={isCurrentMonth ? 1 : 0.7}
+              style={[styles.monthBadge, isCurrentMonth && styles.monthBadgeActive]}
+            >
+              <Text style={[styles.monthBadgeText, isCurrentMonth && styles.monthBadgeTextActive]}>
+                {isCurrentMonth ? "This Month" : "Go to Now"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={goNext}
+              style={[styles.navBtn, isCurrentMonth && styles.navBtnDisabled]}
+              activeOpacity={isCurrentMonth ? 1 : 0.7}
+              disabled={isCurrentMonth}
+            >
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={isCurrentMonth ? colors.textMuted : colors.textPrimary}
+              />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -104,7 +175,10 @@ export default function Dashboard() {
         <View style={styles.balanceCard}>
           <View style={styles.balanceCardCircle} />
           <Text style={styles.balanceLabel}>NET BALANCE</Text>
-          <Text style={styles.balanceAmount}>
+          <Text style={[
+            styles.balanceAmount,
+            { color: balance >= 0 ? colors.success : colors.expense }
+          ]}>
             {balance < 0 ? "−" : "+"}
             {Math.abs(balance).toLocaleString("en-US", {
               minimumFractionDigits: 2,
@@ -147,16 +221,13 @@ export default function Dashboard() {
   }
 
   function renderItem({ item, index }) {
-    // Section header row
     if (item._type === "section_header") {
       return (
         <View style={[styles.sectionWrapper, index > 0 && { marginTop: 24 }]}>
           <SectionHeader color={item.color} title={item.title} count={item.count} />
-          <View style={styles.listCard} />
         </View>
       );
     }
-    // Empty state
     if (item._type === "empty") {
       return (
         <View style={styles.listCardSingle}>
@@ -164,7 +235,6 @@ export default function Dashboard() {
         </View>
       );
     }
-    // Regular item — detect if last in its group to handle border
     return (
       <View style={styles.itemWrapper}>
         <Item data={item} />
@@ -219,18 +289,45 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontWeight: "400",
   },
-  monthBadge: {
-    backgroundColor: "rgba(79,142,247,0.12)",
+
+  // Month navigator
+  monthNav: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  navBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "rgba(79,142,247,0.3)",
-    borderRadius: 20,
-    paddingHorizontal: 12,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  navBtnDisabled: {
+    opacity: 0.4,
+  },
+  monthBadge: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 10,
     paddingVertical: 6,
   },
+  monthBadgeActive: {
+    backgroundColor: "rgba(79,142,247,0.12)",
+    borderColor: "rgba(79,142,247,0.3)",
+  },
   monthBadgeText: {
-    color: colors.primary,
+    color: colors.textSecondary,
     fontSize: 11,
     fontWeight: "600",
+  },
+  monthBadgeTextActive: {
+    color: colors.primary,
   },
 
   // Balance card
@@ -262,7 +359,6 @@ const styles = StyleSheet.create({
   balanceAmount: {
     fontSize: 38,
     fontWeight: "800",
-    color: colors.textPrimary,
     letterSpacing: -1,
     lineHeight: 46,
     marginBottom: 18,
@@ -271,6 +367,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "400",
     opacity: 0.5,
+    color: colors.textPrimary,
   },
   pillRow: {
     flexDirection: "row",
@@ -323,7 +420,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     marginBottom: 8,
-    justifyContent: "center"
+    justifyContent: "center",
   },
 
   // Section
@@ -353,7 +450,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  // Item wrapper — acts as the listCard container per item
+  // Item wrapper
   itemWrapper: {
     backgroundColor: colors.surface,
     borderLeftWidth: 1,

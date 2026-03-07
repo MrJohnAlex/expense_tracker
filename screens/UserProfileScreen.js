@@ -37,7 +37,6 @@ export default function UserProfileScreen() {
 
   const [draft, setDraft] = useState({
     name:  userCtx.user?.name  ?? "",
-    phone: userCtx.user?.phone ?? "",
     email: userCtx.user?.email ?? "",
   });
 
@@ -58,7 +57,6 @@ export default function UserProfileScreen() {
   function validate() {
     const newErrors = {
       name:  draft.name.trim().length === 0,
-      phone: draft.phone.trim().length === 0,
       email: !draft.email.includes("@"),
     };
     setErrors(newErrors);
@@ -158,7 +156,7 @@ export default function UserProfileScreen() {
       <View style={styles.fieldsCard}>
         <Text style={styles.fieldsTitle}>Personal Info</Text>
 
-        <FieldRow
+        {/* <FieldRow
           icon="call-outline"
           iconBg="rgba(79,142,247,0.12)"
           iconColor={colors.primary}
@@ -172,7 +170,7 @@ export default function UserProfileScreen() {
           errorMsg="Phone is required"
         />
 
-        <View style={styles.fieldDivider} />
+        <View style={styles.fieldDivider} /> */}
 
         <FieldRow
           icon="mail-outline"
@@ -230,7 +228,7 @@ export default function UserProfileScreen() {
       )}
 
       {/* ── Stats row ────────────────────────────────────── */}
-      <View style={styles.statsRow}>
+      {/* <View style={styles.statsRow}>
         {[
           { label: "Member Since", value: "2024", icon: "calendar-outline",       color: colors.primary },
           { label: "Transactions", value: "128",  icon: "swap-horizontal-outline", color: colors.warning },
@@ -242,7 +240,7 @@ export default function UserProfileScreen() {
             <Text style={styles.statLabel}>{s.label}</Text>
           </View>
         ))}
-      </View>
+      </View> */}
 
       {/* ── Sign out ─────────────────────────────────────── */}
       <TouchableOpacity
@@ -383,8 +381,11 @@ const styles = StyleSheet.create({
   },
   fieldValue: { fontSize: 15, fontWeight: "600", color: colors.textPrimary },
   fieldInput: {
-    backgroundColor: colors.background, borderRadius: 12,
-    paddingVertical: 12, paddingHorizontal: 14, fontSize: 15,
+    backgroundColor: colors.background, 
+    borderRadius: 12,
+    paddingVertical: 12, 
+    paddingHorizontal: 14, 
+    fontSize: 15,
     fontWeight: "600", color: colors.textPrimary,
     borderWidth: 1.5, borderColor: colors.primary,
   },

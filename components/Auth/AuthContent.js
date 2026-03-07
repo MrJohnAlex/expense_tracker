@@ -1,47 +1,49 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 import FlatButton from "../ui/FlatButton";
 import AuthForm from "./AuthForm";
 import { GlobalStyles } from "../../constants/styles";
+import { UserContext } from "../../context/UserContext";
 
-function AuthContent({ isLogin, onAuthenticate }) {
+function AuthContent({ isLogin }) {
+  const { authenticate } = useContext(UserContext);
+  const navigation = useNavigation();
+
   const [credentialsInvalid, setCredentialsInvalid] = useState({
+    name: false,
     email: false,
     password: false,
     confirmEmail: false,
     confirmPassword: false,
   });
 
-  const navigation = useNavigation();
   function switchAuthModeHandler() {
-    let login = !isLogin;
-    if (login) {
-      navigation.navigate("Login");
-    } else {
-      navigation.navigate("Signup");
-    }
+    navigation.navigate(isLogin ? "Signup" : "Login");
   }
 
-  function submitHandler(credentials) {
-    let { email, confirmEmail, password, confirmPassword } = credentials;
+  async function submitHandler(credentials) {
+    let { name, email, confirmEmail, password, confirmPassword } = credentials;
 
     email = email.trim();
     password = password.trim();
+    name = name?.trim();
 
     const emailIsValid = email.includes("@");
     const passwordIsValid = password.length > 6;
     const emailsAreEqual = email === confirmEmail;
     const passwordsAreEqual = password === confirmPassword;
+    const nameIsValid = isLogin || (!!name && name.length > 0);
 
     if (
       !emailIsValid ||
       !passwordIsValid ||
-      (!isLogin && (!emailsAreEqual || !passwordsAreEqual))
+      (!isLogin && (!emailsAreEqual || !passwordsAreEqual || !nameIsValid))
     ) {
       Alert.alert("Invalid input", "Please check your entered credentials.");
       setCredentialsInvalid({
+        name: !nameIsValid,
         email: !emailIsValid,
         confirmEmail: !emailIsValid || !emailsAreEqual,
         password: !passwordIsValid,
@@ -49,7 +51,15 @@ function AuthContent({ isLogin, onAuthenticate }) {
       });
       return;
     }
-    onAuthenticate({ email, password });
+
+    try {
+      await authenticate({ email, password, name, isLogin });
+    } catch (error) {
+      Alert.alert(
+        "Authentication failed",
+        error.message ?? "Please check your credentials and try again."
+      );
+    }
   }
 
   return (

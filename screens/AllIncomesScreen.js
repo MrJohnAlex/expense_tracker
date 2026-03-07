@@ -4,8 +4,6 @@ import { ExpenseContext } from "../context/expense-context";
 
 export default function AllIncomesScreen() {
   const expensesCtx = useContext(ExpenseContext);
-
-  console.log(expensesCtx.incomes)
   return (
     <ExpensesOutput
       expenses={expensesCtx.incomes}

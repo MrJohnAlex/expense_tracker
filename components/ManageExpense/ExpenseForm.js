@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Input from "./Input";
@@ -17,57 +17,55 @@ const colors = {
   textMuted:     "#4A5568",
 };
 
+// ── Safely convert anything to a valid Date ──────────────────
+function toDate(val) {
+  if (val instanceof Date && !isNaN(val)) return val;
+  if (typeof val === "string" && val) {
+    const d = new Date(val);
+    if (!isNaN(d)) return d;
+  }
+  return new Date();
+}
+
+function formatDate(date) {
+  if (!(date instanceof Date) || isNaN(date)) return "";
+  const year  = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day   = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export default function ExpenseForm({
   submitButtonLabel,
   onCancelHandler,
   onConfirmHandler,
-  defaultValues,   // populated when editing
-  formType,        // "income" | "expense" — locks the toggle
+  defaultValues,
+  formType,
 }) {
   const isEditing = !!defaultValues;
 
-  // ── Type — priority: formType prop > defaultValues.type > "expense" ──
   const resolvedType = formType ?? defaultValues?.type ?? "expense";
   const [type, setType] = useState(resolvedType);
 
-  const isIncome    = type === "income";
-  const accentColor = isIncome ? colors.income  : colors.expense;
-  const accentBg    = isIncome ? colors.incomeBg : colors.expenseBg;
+  // ── Sync inputs when defaultValues changes (edit screen re-mount) ──
+  const [inputs, setInputs] = useState(() => buildInitialState(defaultValues));
 
-  // ── Inputs — pre-filled when editing ────────────────────
-  const [inputs, setInputs] = useState({
-    amount: {
-      value:   defaultValues ? String(defaultValues.amount) : "",
-      isValid: true,
-    },
-    date: {
-      // defaultValues.date may be a Date object or a string — normalise to Date
-      value:   defaultValues
-        ? defaultValues.date instanceof Date
-          ? defaultValues.date
-          : new Date(defaultValues.date)
-        : new Date(),
-      isValid: true,
-    },
-    description: {
-      value:   defaultValues?.description ?? "",
-      isValid: true,
-    },
-  });
+  // Re-initialize if defaultValues reference changes
+  useEffect(() => {
+    if (defaultValues) {
+      setInputs(buildInitialState(defaultValues));
+      setType(formType ?? defaultValues?.type ?? "expense");
+    }
+  }, [defaultValues]);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Allow dates up to 30 days in the past
+  const isIncome    = type === "income";
+  const accentColor = isIncome ? colors.income   : colors.expense;
+  const accentBg    = isIncome ? colors.incomeBg : colors.expenseBg;
+
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  function formatDate(date) {
-    if (!(date instanceof Date) || isNaN(date)) return "";
-    const year  = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day   = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
 
   function inputChangeHandler(field, value) {
     setInputs((cur) => ({
@@ -198,6 +196,7 @@ export default function ExpenseForm({
               textInputConfig={{
                 placeholder: "YYYY-MM-DD",
                 editable: false,
+                // ✅ Always derives display string from the Date object in state
                 value: formatDate(inputs.date.value),
               }}
               inValid={!inputs.date.isValid}
@@ -208,6 +207,7 @@ export default function ExpenseForm({
 
       {showDatePicker && (
         <DateTimePicker
+          // ✅ Always passes a valid Date object to the picker
           value={inputs.date.value instanceof Date ? inputs.date.value : new Date()}
           onChange={onDateChangeHandler}
           mode="date"
@@ -264,13 +264,29 @@ export default function ExpenseForm({
   );
 }
 
+// ── Extracted so both useState and useEffect use the same logic ──
+function buildInitialState(defaultValues) {
+  return {
+    amount: {
+      value:   defaultValues ? String(defaultValues.amount) : "",
+      isValid: true,
+    },
+    date: {
+      value:   toDate(defaultValues?.date),  // always a clean Date object
+      isValid: true,
+    },
+    description: {
+      value:   defaultValues?.description ?? "",
+      isValid: true,
+    },
+  };
+}
+
 const styles = StyleSheet.create({
   form: {
     marginTop: 16,
     paddingHorizontal: 4,
   },
-
-  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -302,8 +318,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     letterSpacing: -0.5,
   },
-
-  // Toggle
   toggle: {
     flexDirection: "row",
     gap: 10,
@@ -323,8 +337,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.textMuted,
   },
-
-  // Row
   row: {
     flexDirection: "row",
     gap: 8,
@@ -332,8 +344,6 @@ const styles = StyleSheet.create({
   rowInput: {
     flex: 1,
   },
-
-  // Error
   errorBanner: {
     backgroundColor: "#2A1010",
     borderWidth: 1,
@@ -348,16 +358,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
   },
-
-  // Divider
   divider: {
     height: 2,
     borderRadius: 99,
     marginVertical: 20,
     opacity: 0.4,
   },
-
-  // Buttons
   buttonsContainer: {
     flexDirection: "row",
     gap: 12,
